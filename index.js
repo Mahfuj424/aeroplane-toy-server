@@ -72,11 +72,29 @@ async function run() {
       res.send(result)
     });
 
+    app.get(`/myToy/:email`, async (req, res) => {
+      try {
+        const email = req.params.email;
+        const sortBy = req.query.sortBy;
 
-    // const indexKey = { name: 1 };
-    // const indexOption = { name: 'toyName' };
-    
-    // const result = await toyCollection.createIndex(indexKey, indexOption)
+        let sortOptions = {};
+        if (sortBy === 'lower') {
+          sortOptions = { price: 1 };
+        }
+
+        else if (sortBy === 'higher') {
+          sortOptions = { price: -1 };
+        }
+        const result = await toyCollection
+          .find({ sellerEmail: email })
+          .sort(sortOptions)
+          .toArray();
+        res.send(result)
+      } catch (error) {
+        console.error('Error retrieving toys:', error);
+        res.status(500).send('Internal Server Error')
+      }
+    })
 
     app.get('/searchText', async (req, res) => {
       const searchText = req?.query?.search;
