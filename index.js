@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 require('dotenv').config()
 const app = express();
@@ -32,19 +32,69 @@ async function run() {
     const toyCollection = client.db('aeroplaneDB').collection('toy')
     
 
-    app.get('/addToy', async (req, res) => {
+    app.get('/allToy', async (req, res) => {
+      const limit = parseInt(req.query.limit) || 20;
       const cursor = toyCollection.find();
-      const result = await cursor.toArray();
+      const result = await cursor.limit(limit).toArray();
       res.send(result)
     })
-      
-      app.post('/addToy', async (req, res) => {
-        const addToy = req.body;
-        const result = await toyCollection.insertOne(addToy)
-        res.send(result)
-      })
 
 
+    app.get(`/updateToy/:id`, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await toyCollection.findOne(query)
+      res.send(result)
+    })
+
+    
+
+    app.put('/updateToy/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const option = {upsert: true}
+      const updatedToy = req.body;
+      const coffee = {
+        $set: {
+          price: updatedToy.price,
+          quantity: updatedToy.quantity,
+          description: updatedToy.description
+        }
+      }
+      const result = await toyCollection.updateOne(filter, coffee, option)
+      res.send(result)
+    })
+
+    
+    app.post('/allToy', async (req, res) => {
+      const addToy = req.body;
+      const result = await toyCollection.insertOne(addToy)
+      res.send(result)
+    });
+
+
+    // const indexKey = { name: 1 };
+    // const indexOption = { name: 'toyName' };
+    
+    // const result = await toyCollection.createIndex(indexKey, indexOption)
+
+    app.get('/searchText', async (req, res) => {
+      const searchText = req?.query?.search;
+      const result = await toyCollection.find({
+        name:{$regex:searchText, $options:"i"}
+      }).toArray()
+      res.send(result)
+    })
+
+
+    app.delete('/toy/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await toyCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
